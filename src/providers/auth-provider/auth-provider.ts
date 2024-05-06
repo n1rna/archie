@@ -1,11 +1,13 @@
 "use client";
 
-import { AuthBindings } from "@refinedev/core";
+import { AuthProvider } from "@refinedev/core";
 import { supabaseClient } from "@utility/supabase-client";
-import Cookies from "js-cookie";
 
-export const authProvider: AuthBindings = {
-  login: async ({ email, password }) => {
+import nookies from "nookies";
+
+const COOKIE_NAME = "token";
+export const authProvider: AuthProvider = {
+  login: async ({ email, password, remember }) => {
     const { data, error } = await supabaseClient.auth.signInWithPassword({
       email,
       password,
@@ -19,14 +21,13 @@ export const authProvider: AuthBindings = {
     }
 
     if (data?.session) {
-      Cookies.set("token", data.session.access_token, {
-        expires: 30, // 30 days
-        path: "/",
+      nookies.set(null, COOKIE_NAME, data.session.access_token, {
+        maxAge: remember ? 30 * 24 * 60 * 60 : undefined,
       });
 
       return {
         success: true,
-        redirectTo: "/",
+        redirectTo: "/app",
       };
     }
 
@@ -40,7 +41,6 @@ export const authProvider: AuthBindings = {
     };
   },
   logout: async () => {
-    Cookies.remove("token", { path: "/" });
     const { error } = await supabaseClient.auth.signOut();
 
     if (error) {
@@ -49,6 +49,8 @@ export const authProvider: AuthBindings = {
         error,
       };
     }
+
+    nookies.destroy(null, COOKIE_NAME);
 
     return {
       success: true,
@@ -90,20 +92,35 @@ export const authProvider: AuthBindings = {
       },
     };
   },
-  check: async () => {
-    const token = Cookies.get("token");
-    const { data } = await supabaseClient.auth.getUser(token);
-    const { user } = data;
+  check: async (context) => {
+    let user: any = undefined;
+    if (context) {
+      // for SSR
+      const cookies = nookies.get(context);
+      const { data } = await supabaseClient.auth.getUser(cookies[COOKIE_NAME]);
+      user = data.user;
+    } else {
+      // for CSR
+      const cookies = nookies.get(null);
+      const { data } = await supabaseClient.auth.getUser(cookies[COOKIE_NAME]);
+      user = data.user;
+    }
 
-    if (user) {
+    if (!user) {
+      nookies.destroy(null, COOKIE_NAME);
       return {
-        authenticated: true,
+        authenticated: false,
+        error: {
+          message: "Check failed",
+          name: "Unauthorized",
+        },
+        logout: true,
+        redirectTo: "/login",
       };
     }
 
     return {
-      authenticated: false,
-      redirectTo: "/login",
+      authenticated: true,
     };
   },
   getPermissions: async () => {

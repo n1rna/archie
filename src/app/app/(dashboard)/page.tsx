@@ -9,7 +9,7 @@ import { NavigateToResource } from "@refinedev/nextjs-router";
 export default function IndexPage() {
   return (
     <ThemedLayout>
-      <p>overview</p>
+        <NavigateToResource />
     </ThemedLayout>
   );
 }

@@ -26,6 +26,7 @@ import Select, { ActionMeta, OnChangeValue, StylesConfig } from "react-select";
 
 import { supabaseClient } from "@utility/supabase-client";
 import { styled } from "@mui/material/styles";
+import MediaAppButton from "@/components/media-manager/media-button";
 
 const options = [
   { value: "chocolate", label: "Chocolate" },
@@ -87,21 +88,7 @@ export default function DesignCreateForm({
           Choose a file
         </Typography>
 
-        <Button
-          component="label"
-          role={undefined}
-          variant="contained"
-          tabIndex={-1}
-          startIcon={<CloudUploadIcon />}
-        >
-          Upload file
-          <VisuallyHiddenInput
-            type="file"
-            {...formProps.register("images", {
-              required: "This field is required",
-            })}
-          />
-        </Button>
+        <MediaAppButton />
       </Box>
 
       <Box className="flex flex-col gap-1">
